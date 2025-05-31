@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  oap:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: skywalking-oap
+    ports:
+      - "11800:11800"   # SkyWalking gRPC
+      - "12800:12800"   # SkyWalking REST API
+      - "4317:4317"     # OTel gRPC 接口
+      - "4318:4318"     # OTel HTTP 接口
+    environment:
+      JAVA_OPTS: "-Xms512M -Xmx512M"
+
+  ui:
+    image: apache/skywalking-ui:9.7.0
+    container_name: skywalking-ui
+    ports:
+      - "8080:8080"
+    environment:
+      SW_OAP_ADDRESS: http://skywalking-oap:12800
+    depends_on:
+      - oap
