@@ -1,50 +1,36 @@
 version: '3.8'
-services:
-  elasticsearch:
-    image: elasticsearch:8.11.1
-    container_name: elasticsearch
-    environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=false
-      - bootstrap.memory_lock=true
-      - ES_JAVA_OPTS=-Xms512m -Xmx512m
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
-    ports:
-      - "9200:9200"
-      - "9300:9300"
 
-  skywalking-oap:
+services:
+  oap:
     image: apache/skywalking-oap-server:10.2.0
     container_name: skywalking-oap
-    depends_on:
-      - elasticsearch
-    restart: unless-stopped
     ports:
-      - "11800:11800"     # Agent gRPC
-      - "12800:12800"     # UI -> OAP HTTP
-      - "4335:4335"       # OTLP gRPC
-      - "4334:4334"       # OTLP HTTP
-    volumes:
-      - ./config/application.yml:/skywalking/config/application.yml
+      - "11800:11800" # SkyWalking gRPC
+      - "12800:12800" # SkyWalking HTTP
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
     environment:
-      SW_STORAGE: elasticsearch
-      SW_STORAGE_ES_CLUSTER_NODES: elasticsearch:9200
-      SW_OTEL_RECEIVER_ENABLED: "true"
-      SW_OTEL_RECEIVER_GRPC_HOST: "0.0.0.0"
-      SW_OTEL_RECEIVER_GRPC_PORT: 4333
-      SW_OTEL_RECEIVER_HTTP_HOST: "0.0.0.0"
-      SW_OTEL_RECEIVER_HTTP_PORT: 4334
-      SW_CORE_HEALTH_CHECKER_INTERVAL_SECONDS: 30
+      SW_STORAGE: h2
+      SW_RECEIVER_OTLP_ENABLED: "true"
+      SW_OTLP_RECEIVER_GRPC_PORT: 4317
+      SW_OTLP_RECEIVER_HTTP_PORT: 4318
+    restart: always
+    networks:
+      - skywalking-net
 
-  skywalking-ui:
+  ui:
     image: apache/skywalking-ui:10.2.0
     container_name: skywalking-ui
-    depends_on:
-      - skywalking-oap
     ports:
       - "8080:8080"
     environment:
-      SW_OAP_ADDRESS: http://skywalking-oap:12800
+      SW_OAP_ADDRESS: http://oap:12800
+    depends_on:
+      - oap
+    restart: always
+    networks:
+      - skywalking-net
+
+networks:
+  skywalking-net:
+    driver: bridge
