@@ -22,14 +22,17 @@ services:
     ports:
       - "11800:11800" # SkyWalking gRPC
       - "12800:12800" # SkyWalking HTTP
-      - "4317:4317"   # OTLP gRPC
-      - "4318:4318"   # OTLP HTTP
+      - "9411:9411" # SkyWalking HTTP
     environment:
       SW_STORAGE: elasticsearch
       SW_STORAGE_ES_CLUSTER_NODES: elasticsearch:9200
-      SW_RECEIVER_OTLP_ENABLED: "true"
-      SW_OTLP_RECEIVER_GRPC_PORT: 4317
-      SW_OTLP_RECEIVER_HTTP_PORT: 4318
+      SW_CONFIGURATION_PRINT: "true"
+      SW_OTEL_RECEIVER: default
+      SW_OTEL_RECEIVER_ENABLED_HANDLERS: otlp-traces
+      SW_RECEIVER_ZIPKIN: default
+      SW_QUERY_ZIPKIN: default
+    volumes:
+        - ./config/application.yml:/skywalking/config/application.yml
     restart: always
     networks:
       - skywalking-net
@@ -44,6 +47,21 @@ services:
     depends_on:
       - oap
     restart: always
+    networks:
+      - skywalking-net
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.89.0
+    container_name: otel-collector
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+    command:
+      --config /etc/otel-collector-config.yaml
+    ports:
+      - "4317:4317"  # OTLP gRPC receiver
+      - "4318:4318"  # OTLP HTTP receiver
+    depends_on:
+      - oap
     networks:
       - skywalking-net
 

@@ -4,17 +4,17 @@ receivers:
       grpc:
       http:
 
+processors:
+  batch:
+
 exporters:
-  otlp:
-    endpoint: skywalking-oap:4317
-    tls:
-      insecure: true
+  zipkin:
+    endpoint: "http://oap:9411/api/v2/spans"  # SkyWalking Zipkin Receiver 端口
+    format: json
 
 service:
   pipelines:
     traces:
       receivers: [otlp]
-      exporters: [otlp]
-
-
-
+      processors: [batch]
+      exporters: [zipkin]
